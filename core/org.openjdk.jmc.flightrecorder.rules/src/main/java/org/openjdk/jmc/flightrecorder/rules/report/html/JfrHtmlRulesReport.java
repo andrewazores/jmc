@@ -145,13 +145,24 @@ public class JfrHtmlRulesReport {
 		Map<IRule, Future<IResult>> resultFutures = RulesToolkit.evaluateParallel(RuleRegistry.getRules(), events, null,
 				0);
 		Collection<IResult> results = new HashSet<>();
+		boolean interrupted = false;
 		for (Map.Entry<IRule, Future<IResult>> resultEntry : resultFutures.entrySet()) {
 			try {
 				results.add(resultEntry.getValue().get());
+			} catch (InterruptedException ie) {
+				getLogger().log(Level.WARNING, "Interrupted while evaluating rule \"" + resultEntry.getKey().getName() + "\"", //$NON-NLS-1$ //$NON-NLS-2$
+						ie);
+				interrupted = true;
+				break;
 			} catch (Throwable t) {
 				getLogger().log(Level.WARNING, "Error while evaluating rule \"" + resultEntry.getKey().getName() + "\"", //$NON-NLS-1$ //$NON-NLS-2$
 						t);
 			}
+		}
+		if (interrupted) {
+			resultFutures.values().forEach(f -> f.cancel(true));
+			// FIXME return some nicer kind of "task cancelled" HTML page
+			return "<html><body><p>Cancelled</p></body></html>";
 		}
 
 		List<HtmlResultGroup> groups = loadResultGroups();

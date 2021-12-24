@@ -1318,7 +1318,7 @@ public class RulesToolkit {
 		@Override
 		public void run() {
 			RunnableFuture<IResult> resultFuture;
-			while ((resultFuture = futureQueue.poll()) != null) {
+			while ((resultFuture = futureQueue.poll()) != null && !Thread.currentThread().isInterrupted()) {
 				resultFuture.run();
 			}
 		}
